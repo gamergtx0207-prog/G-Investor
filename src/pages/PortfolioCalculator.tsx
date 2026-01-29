@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { PlusCircle, MinusCircle } from "lucide-react";
+import { PlusCircle, MinusCircle, RotateCcw } from "lucide-react"; // Import RotateCcw for reset icon
 import { cn } from "@/lib/utils";
 import TimeHorizonSelector from "@/components/TimeHorizonSelector";
 import RiskToleranceSelector from "@/components/RiskToleranceSelector";
@@ -298,20 +298,33 @@ const PortfolioCalculator = () => {
 
   const removeAsset = (id: string) => {
     setAssets((prevAssets) => {
-      const updatedAssets = prevAssets.filter((asset) => asset.id !== id);
-      const currentTotal = updatedAssets.reduce((acc, asset) => acc + asset.percentage, 0);
-      if (currentTotal < 100 && updatedAssets.length > 0) {
-        const remaining = 100 - currentTotal;
-        const totalExistingPercentage = updatedAssets.reduce((acc, asset) => acc + asset.percentage, 0);
-        if (totalExistingPercentage > 0) {
-          return updatedAssets.map(asset => ({
-            ...asset,
-            percentage: asset.percentage + (asset.percentage / totalExistingPercentage) * remaining
-          }));
-        }
+      const removedAsset = prevAssets.find(asset => asset.id === id);
+      if (!removedAsset) return prevAssets;
+
+      const remainingAssets = prevAssets.filter((asset) => asset.id !== id);
+      const removedPercentage = removedAsset.percentage;
+
+      if (remainingAssets.length === 0) {
+        return []; // No assets left
       }
-      return updatedAssets;
+
+      const currentRemainingTotal = remainingAssets.reduce((acc, asset) => acc + asset.percentage, 0);
+      const totalToDistribute = removedPercentage;
+
+      if (currentRemainingTotal + totalToDistribute === 0) {
+        // Avoid division by zero if all remaining percentages are 0
+        return remainingAssets;
+      }
+
+      return remainingAssets.map(asset => ({
+        ...asset,
+        percentage: asset.percentage + (asset.percentage / currentRemainingTotal) * totalToDistribute,
+      }));
     });
+  };
+
+  const resetPortfolio = () => {
+    applyRiskAllocation(riskTolerance);
   };
 
   const pieChartData = assets.filter(asset => asset.percentage > 0);
@@ -363,7 +376,7 @@ const PortfolioCalculator = () => {
                   />
                   <Input
                     type="number"
-                    value={asset.percentage}
+                    value={asset.percentage.toFixed(0)} // Display as integer
                     onChange={(e) => handleInputChange(asset.id, e.target.value)}
                     className="w-20 text-center rounded-md border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500"
                     min={0}
@@ -373,12 +386,21 @@ const PortfolioCalculator = () => {
                 </div>
               </div>
             ))}
-            <Button
-              onClick={addAsset}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 text-lg font-semibold shadow-md transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <PlusCircle className="h-5 w-5" /> Add Asset Class
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                onClick={addAsset}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 text-lg font-semibold shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <PlusCircle className="h-5 w-5" /> Add Asset Class
+              </Button>
+              <Button
+                onClick={resetPortfolio}
+                variant="outline"
+                className="flex-1 border-indigo-600 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg py-2 text-lg font-semibold shadow-md transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="h-5 w-5" /> Reset Portfolio
+              </Button>
+            </div>
             <div className="flex justify-between items-center p-4 bg-indigo-100 rounded-lg shadow-sm">
               <span className="text-xl font-bold text-indigo-800">Total Allocation:</span>
               <Badge
@@ -389,7 +411,7 @@ const PortfolioCalculator = () => {
                     : "bg-red-500 text-white animate-pulse"
                 )}
               >
-                {totalAllocation}%
+                {totalAllocation.toFixed(0)}%
               </Badge>
             </div>
 
