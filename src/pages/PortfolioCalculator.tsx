@@ -353,7 +353,7 @@ const PortfolioCalculator = () => {
                     className="text-lg font-semibold text-gray-700 border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto bg-transparent"
                   />
                   <span className="text-lg font-medium text-gray-600 ml-2">
-                    ({((ASSET_SCENARIO_RETURNS[asset.id]?.mostLikely ?? 0) * 100).toFixed(1)}% est. annual return)
+                    ({((ASSET_SCENARIO_RETURNS[asset.id]?.[selectedScenario] ?? 0) * 100).toFixed(1)}% est. annual return)
                   </span>
                   <Button
                     variant="ghost"
