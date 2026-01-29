@@ -72,11 +72,11 @@ const RISK_ALLOCATIONS: { [key: string]: { id: string; percentage: number }[] } 
     { id: "crypto", percentage: 0 }, // Crypto set to 0% for conservative
   ],
   moderate: [
-    { id: "stocks", percentage: 50 },
-    { id: "realEstate", percentage: 15 },
+    { id: "stocks", percentage: 25 }, // Adjusted from 50%
+    { id: "realEstate", percentage: 40 }, // Adjusted from 15%
     { id: "commodities", percentage: 10 },
     { id: "cash", percentage: 15 },
-    { id: "crypto", percentage: 10 }, // Moderate crypto allocation
+    { id: "crypto", percentage: 10 },
   ],
   aggressive: [
     { id: "stocks", percentage: 70 },
