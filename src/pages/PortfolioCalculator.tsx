@@ -78,7 +78,8 @@ const PortfolioCalculator = () => {
 
     let weightedAnnualReturn = 0;
     assets.forEach((asset) => {
-      const baseReturn = ASSET_BASE_RETURNS[asset.id] || 0;
+      // Use a default return if asset.id is not in ASSET_BASE_RETURNS
+      const baseReturn = ASSET_BASE_RETURNS[asset.id] || 0.03; // Default to 3% for unknown assets
       weightedAnnualReturn += (asset.percentage / 100) * baseReturn;
     });
 
@@ -184,8 +185,16 @@ const PortfolioCalculator = () => {
     }
   };
 
+  const handleAssetNameChange = (id: string, newName: string) => {
+    setAssets((prevAssets) =>
+      prevAssets.map((asset) =>
+        asset.id === id ? { ...asset, name: newName } : asset
+      )
+    );
+  };
+
   const addAsset = () => {
-    const newId = `asset-${assets.length + 1}`;
+    const newId = `asset-${Date.now()}`; // Use Date.now() for a more unique ID
     const newColor = COLORS[assets.length % COLORS.length];
     setAssets((prevAssets) => [
       ...prevAssets,
@@ -200,10 +209,12 @@ const PortfolioCalculator = () => {
       if (currentTotal < 100 && updatedAssets.length > 0) {
         const remaining = 100 - currentTotal;
         const totalExistingPercentage = updatedAssets.reduce((acc, asset) => acc + asset.percentage, 0);
-        return updatedAssets.map(asset => ({
-          ...asset,
-          percentage: asset.percentage + (asset.percentage / totalExistingPercentage) * remaining
-        }));
+        if (totalExistingPercentage > 0) { // Avoid division by zero if all other assets are 0%
+          return updatedAssets.map(asset => ({
+            ...asset,
+            percentage: asset.percentage + (asset.percentage / totalExistingPercentage) * remaining
+          }));
+        }
       }
       return updatedAssets;
     });
@@ -228,9 +239,12 @@ const PortfolioCalculator = () => {
             {assets.map((asset) => (
               <div key={asset.id} className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg shadow-sm">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor={`asset-${asset.id}`} className="text-lg font-semibold text-gray-700">
-                    {asset.name}
-                  </Label>
+                  <Input
+                    type="text"
+                    value={asset.name}
+                    onChange={(e) => handleAssetNameChange(asset.id, e.target.value)}
+                    className="text-lg font-semibold text-gray-700 border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto bg-transparent"
+                  />
                   <Button
                     variant="ghost"
                     size="icon"
