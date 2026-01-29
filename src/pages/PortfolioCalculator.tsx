@@ -12,6 +12,13 @@ import { PlusCircle, MinusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import TimeHorizonSelector from "@/components/TimeHorizonSelector";
 import RiskToleranceSelector from "@/components/RiskToleranceSelector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Asset {
   id: string;
@@ -33,12 +40,12 @@ const COLORS = [
   "#6B7280", // Gray
 ];
 
-// --- Simplified Return Assumptions ---
-const ASSET_BASE_RETURNS: { [key: string]: number } = {
-  stocks: 0.08, // 8% annual return
-  realEstate: 0.05, // 5% annual return
-  commodities: 0.04, // 4% annual return
-  cash: 0.00, // 0% annual return as requested
+// --- Scenario-based Return Assumptions ---
+const ASSET_SCENARIO_RETURNS: { [key: string]: { worst: number; mostLikely: number; best: number } } = {
+  stocks: { worst: 0.04, mostLikely: 0.08, best: 0.12 }, // Example values
+  realEstate: { worst: 0.02, mostLikely: 0.05, best: 0.08 },
+  commodities: { worst: 0.00, mostLikely: 0.04, best: 0.07 },
+  cash: { worst: 0.00, mostLikely: 0.005, best: 0.015 }, // Cash might have a small positive return
 };
 
 const ASSET_DEFAULT_NAMES: { [key: string]: string } = {
@@ -81,11 +88,19 @@ const PortfolioCalculator = () => {
   const [totalAllocation, setTotalAllocation] = useState(0);
   const [timeHorizon, setTimeHorizon] = useState<string>("10");
   const [riskTolerance, setRiskTolerance] = useState<string>("moderate");
-  const [estimatedAnnualReturn, setEstimatedAnnualReturn] = useState(0);
-  const [estimatedTotalReturn, setEstimatedTotalReturn] = useState(0);
-  const [initialInvestment, setInitialInvestment] = useState<number>(10000); // New state for initial investment
-  const [monthlyContribution, setMonthlyContribution] = useState<number>(100); // New state for monthly contribution
-  const [projectedFutureValue, setProjectedFutureValue] = useState<number>(0); // New state for projected value
+  const [initialInvestment, setInitialInvestment] = useState<number>(10000);
+  const [monthlyContribution, setMonthlyContribution] = useState<number>(100);
+  
+  const [scenarioResults, setScenarioResults] = useState<{
+    worst: { annual: number; total: number; projected: number };
+    mostLikely: { annual: number; total: number; projected: number };
+    best: { annual: number; total: number; projected: number };
+  }>({
+    worst: { annual: 0, total: 0, projected: 0 },
+    mostLikely: { annual: 0, total: 0, projected: 0 },
+    best: { annual: 0, total: 0, projected: 0 },
+  });
+  const [selectedScenario, setSelectedScenario] = useState<"worst" | "mostLikely" | "best">("mostLikely");
 
   // Function to apply a risk allocation template
   const applyRiskAllocation = useCallback((newRiskTolerance: string) => {
@@ -115,48 +130,60 @@ const PortfolioCalculator = () => {
 
   const calculateEstimatedReturns = useCallback(() => {
     if (totalAllocation !== 100) {
-      setEstimatedAnnualReturn(0);
-      setEstimatedTotalReturn(0);
-      setProjectedFutureValue(0); // Reset projected value if allocation is not 100%
+      setScenarioResults({
+        worst: { annual: 0, total: 0, projected: 0 },
+        mostLikely: { annual: 0, total: 0, projected: 0 },
+        best: { annual: 0, total: 0, projected: 0 },
+      });
       return;
     }
 
-    let weightedAnnualReturn = 0;
-    assets.forEach((asset) => {
-      const baseReturn = ASSET_BASE_RETURNS[asset.id] !== undefined ? ASSET_BASE_RETURNS[asset.id] : 0.03;
-      weightedAnnualReturn += (asset.percentage / 100) * baseReturn;
-    });
-
-    const riskMultiplier = RISK_TOLERANCE_MULTIPLIERS[riskTolerance] || 1.0;
-    const adjustedAnnualReturn = weightedAnnualReturn * riskMultiplier;
-
-    setEstimatedAnnualReturn(adjustedAnnualReturn * 100); // Convert to percentage
-
     const years = parseInt(timeHorizon);
-    if (years > 0) {
-      const totalReturn = (Math.pow(1 + adjustedAnnualReturn, years) - 1) * 100; // Convert to percentage
-      setEstimatedTotalReturn(totalReturn);
+    const riskMultiplier = RISK_TOLERANCE_MULTIPLIERS[riskTolerance] || 1.0;
 
-      // Calculate Future Value with initial investment and monthly contributions
-      const annualRate = adjustedAnnualReturn;
-      const monthlyRate = annualRate / 12;
-      const totalMonths = years * 12;
+    const calculateForScenario = (scenarioKey: "worst" | "mostLikely" | "best") => {
+      let weightedAnnualReturn = 0;
+      assets.forEach((asset) => {
+        const assetReturns = ASSET_SCENARIO_RETURNS[asset.id];
+        const baseReturn = assetReturns ? assetReturns[scenarioKey] : 0; // Default to 0 if not found
+        weightedAnnualReturn += (asset.percentage / 100) * baseReturn;
+      });
 
-      let futureValue = initialInvestment * Math.pow(1 + annualRate, years);
+      const adjustedAnnualReturn = weightedAnnualReturn * riskMultiplier;
+      const annualReturnPercentage = adjustedAnnualReturn * 100;
 
-      // Future value of a series of payments (annuity future value)
-      if (monthlyRate > 0) {
-        futureValue += monthlyContribution * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate);
-      } else { // Handle 0% return for monthly contributions
-        futureValue += monthlyContribution * totalMonths;
+      let totalReturnPercentage = 0;
+      let projectedValue = initialInvestment;
+
+      if (years > 0) {
+        totalReturnPercentage = (Math.pow(1 + adjustedAnnualReturn, years) - 1) * 100;
+
+        const monthlyRate = adjustedAnnualReturn / 12;
+        const totalMonths = years * 12;
+
+        projectedValue = initialInvestment * Math.pow(1 + adjustedAnnualReturn, years);
+
+        if (monthlyRate > 0) {
+          projectedValue += monthlyContribution * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate) * (1 + monthlyRate);
+        } else {
+          projectedValue += monthlyContribution * totalMonths;
+        }
+      } else {
+        projectedValue = initialInvestment;
       }
-      
-      setProjectedFutureValue(futureValue);
 
-    } else {
-      setEstimatedTotalReturn(0);
-      setProjectedFutureValue(initialInvestment); // If 0 years, future value is just initial investment
-    }
+      return {
+        annual: annualReturnPercentage,
+        total: totalReturnPercentage,
+        projected: projectedValue,
+      };
+    };
+
+    setScenarioResults({
+      worst: calculateForScenario("worst"),
+      mostLikely: calculateForScenario("mostLikely"),
+      best: calculateForScenario("best"),
+    });
   }, [assets, totalAllocation, timeHorizon, riskTolerance, initialInvestment, monthlyContribution]);
 
   useEffect(() => {
@@ -308,7 +335,7 @@ const PortfolioCalculator = () => {
                     className="text-lg font-semibold text-gray-700 border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto bg-transparent"
                   />
                   <span className="text-lg font-medium text-gray-600 ml-2">
-                    ({((ASSET_BASE_RETURNS[asset.id] !== undefined ? ASSET_BASE_RETURNS[asset.id] : 0.03) * 100).toFixed(0)}% est. annual return)
+                    ({((ASSET_SCENARIO_RETURNS[asset.id]?.mostLikely ?? 0) * 100).toFixed(1)}% est. annual return)
                   </span>
                   <Button
                     variant="ghost"
@@ -396,6 +423,23 @@ const PortfolioCalculator = () => {
 
             {/* Risk Tolerance Selector */}
             <RiskToleranceSelector onSelect={applyRiskAllocation} defaultValue={riskTolerance} />
+
+            {/* Scenario Selector */}
+            <div className="flex flex-col gap-2 p-4 bg-gray-50 rounded-lg shadow-sm">
+              <Label htmlFor="scenario-selector" className="text-lg font-semibold text-gray-700">
+                Select Scenario
+              </Label>
+              <Select onValueChange={(value: "worst" | "mostLikely" | "best") => setSelectedScenario(value)} defaultValue={selectedScenario}>
+                <SelectTrigger id="scenario-selector" className="w-full rounded-md border-indigo-300 focus:border-indigo-500 focus:ring-indigo-500">
+                  <SelectValue placeholder="Select scenario" />
+                </SelectTrigger>
+                <SelectContent className="rounded-md shadow-lg">
+                  <SelectItem value="worst">Worst Case</SelectItem>
+                  <SelectItem value="mostLikely">Most Likely</SelectItem>
+                  <SelectItem value="best">Best Case</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Portfolio Visualization and Estimated Returns */}
@@ -460,13 +504,13 @@ const PortfolioCalculator = () => {
                 {totalAllocation === 100 ? (
                   <>
                     <p className="mb-2 text-lg">
-                      **Annual Return:** <span className="font-bold text-indigo-700">{estimatedAnnualReturn.toFixed(2)}%</span>
+                      **Annual Return ({selectedScenario === "worst" ? "Worst" : selectedScenario === "mostLikely" ? "Most Likely" : "Best"}):** <span className="font-bold text-indigo-700">{scenarioResults[selectedScenario].annual.toFixed(2)}%</span>
                     </p>
                     <p className="mb-2 text-lg">
-                      **Total Return ({timeHorizon} years):** <span className="font-bold text-indigo-700">{estimatedTotalReturn.toFixed(2)}%</span>
+                      **Total Return ({timeHorizon} years, {selectedScenario === "worst" ? "Worst" : selectedScenario === "mostLikely" ? "Most Likely" : "Best"}):** <span className="font-bold text-indigo-700">{scenarioResults[selectedScenario].total.toFixed(2)}%</span>
                     </p>
                     <p className="mb-4 text-2xl font-extrabold text-indigo-800">
-                      Projected Value: <span className="text-green-600">${projectedFutureValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      Projected Value ({selectedScenario === "worst" ? "Worst" : selectedScenario === "mostLikely" ? "Most Likely" : "Best"}): <span className="text-green-600">${scenarioResults[selectedScenario].projected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     </p>
                     <p className="text-sm text-gray-500">
                       Based on your {riskTolerance} risk tolerance over {timeHorizon} years with an initial investment of ${initialInvestment.toLocaleString()} and monthly contributions of ${monthlyContribution.toLocaleString()}.
