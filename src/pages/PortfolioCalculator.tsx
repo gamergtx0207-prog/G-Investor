@@ -245,6 +245,9 @@ const PortfolioCalculator = () => {
                     onChange={(e) => handleAssetNameChange(asset.id, e.target.value)}
                     className="text-lg font-semibold text-gray-700 border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto bg-transparent"
                   />
+                  <span className="text-lg font-medium text-gray-600 ml-2">
+                    ({((ASSET_BASE_RETURNS[asset.id] || 0.03) * 100).toFixed(0)}% est. annual return)
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
