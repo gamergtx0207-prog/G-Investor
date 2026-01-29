@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { PlusCircle, MinusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import TimeHorizonSelector from "@/components/TimeHorizonSelector"; // Import new component
-import RiskToleranceSelector from "@/components/RiskToleranceSelector"; // Import new component
+import TimeHorizonSelector from "@/components/TimeHorizonSelector";
+import RiskToleranceSelector from "@/components/RiskToleranceSelector";
 
 interface Asset {
   id: string;
@@ -40,16 +40,65 @@ const COLORS = [
   "#6B7280", // Gray
 ];
 
+// --- Simplified Return Assumptions ---
+const ASSET_BASE_RETURNS: { [key: string]: number } = {
+  stocks: 0.08, // 8% annual return
+  realEstate: 0.05, // 5% annual return
+  commodities: 0.04, // 4% annual return
+  cash: 0.02, // 2% annual return
+  // Add more asset types here if needed
+};
+
+const RISK_TOLERANCE_MULTIPLIERS: { [key: string]: number } = {
+  conservative: 0.8,
+  moderate: 1.0,
+  aggressive: 1.2,
+};
+// --- End Return Assumptions ---
+
 const PortfolioCalculator = () => {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
   const [totalAllocation, setTotalAllocation] = useState(100);
-  const [timeHorizon, setTimeHorizon] = useState<string>("10"); // State for time horizon
-  const [riskTolerance, setRiskTolerance] = useState<string>("moderate"); // State for risk tolerance
+  const [timeHorizon, setTimeHorizon] = useState<string>("10");
+  const [riskTolerance, setRiskTolerance] = useState<string>("moderate");
+  const [estimatedAnnualReturn, setEstimatedAnnualReturn] = useState(0);
+  const [estimatedTotalReturn, setEstimatedTotalReturn] = useState(0);
 
   useEffect(() => {
     const sum = assets.reduce((acc, asset) => acc + asset.percentage, 0);
     setTotalAllocation(sum);
   }, [assets]);
+
+  const calculateEstimatedReturns = useCallback(() => {
+    if (totalAllocation !== 100) {
+      setEstimatedAnnualReturn(0);
+      setEstimatedTotalReturn(0);
+      return;
+    }
+
+    let weightedAnnualReturn = 0;
+    assets.forEach((asset) => {
+      const baseReturn = ASSET_BASE_RETURNS[asset.id] || 0;
+      weightedAnnualReturn += (asset.percentage / 100) * baseReturn;
+    });
+
+    const riskMultiplier = RISK_TOLERANCE_MULTIPLIERS[riskTolerance] || 1.0;
+    const adjustedAnnualReturn = weightedAnnualReturn * riskMultiplier;
+
+    setEstimatedAnnualReturn(adjustedAnnualReturn * 100); // Convert to percentage
+
+    const years = parseInt(timeHorizon);
+    if (years > 0) {
+      const totalReturn = (Math.pow(1 + adjustedAnnualReturn, years) - 1) * 100; // Convert to percentage
+      setEstimatedTotalReturn(totalReturn);
+    } else {
+      setEstimatedTotalReturn(0);
+    }
+  }, [assets, totalAllocation, timeHorizon, riskTolerance]);
+
+  useEffect(() => {
+    calculateEstimatedReturns();
+  }, [calculateEstimatedReturns]);
 
   const handleSliderChange = (id: string, value: number[]) => {
     const newPercentage = value[0];
@@ -263,7 +312,7 @@ const PortfolioCalculator = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number, name: string) => [`${value}%`, name]}
+                    formatter={(value: number, name: string) => [`${value.toFixed(2)}%`, name]}
                     contentStyle={{
                       borderRadius: "8px",
                       border: "1px solid #e2e8f0",
@@ -288,24 +337,34 @@ const PortfolioCalculator = () => {
                     className="w-4 h-4 rounded-full"
                     style={{ backgroundColor: asset.color }}
                   ></span>
-                  <span className="text-sm text-gray-700">{asset.name} ({asset.percentage}%)</span>
+                  <span className="text-sm text-gray-700">{asset.name} ({asset.percentage.toFixed(0)}%)</span>
                 </div>
               ))}
             </div>
 
-            {/* Placeholder for Estimated Returns */}
+            {/* Estimated Returns */}
             <Card className="w-full mt-8 p-4 bg-white rounded-lg shadow-md border-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-2xl font-bold text-indigo-800">Estimated Returns</CardTitle>
               </CardHeader>
               <CardContent className="text-center text-gray-600">
-                <p className="mb-2">
-                  Based on your allocation, time horizon ({timeHorizon} years), and risk tolerance ({riskTolerance}),
-                  estimated returns will appear here.
-                </p>
-                <p className="text-sm text-gray-500">
-                  (Calculations coming soon!)
-                </p>
+                {totalAllocation === 100 ? (
+                  <>
+                    <p className="mb-2 text-lg">
+                      **Annual Return:** <span className="font-bold text-indigo-700">{estimatedAnnualReturn.toFixed(2)}%</span>
+                    </p>
+                    <p className="mb-2 text-lg">
+                      **Total Return ({timeHorizon} years):** <span className="font-bold text-indigo-700">{estimatedTotalReturn.toFixed(2)}%</span>
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Based on your {riskTolerance} risk tolerance over {timeHorizon} years.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-red-500 font-semibold">
+                    Please adjust your asset allocation to 100% to see estimated returns.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
