@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { PlusCircle, MinusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import TimeHorizonSelector from "@/components/TimeHorizonSelector"; // Import new component
+import RiskToleranceSelector from "@/components/RiskToleranceSelector"; // Import new component
 
 interface Asset {
   id: string;
@@ -41,6 +43,8 @@ const COLORS = [
 const PortfolioCalculator = () => {
   const [assets, setAssets] = useState<Asset[]>(initialAssets);
   const [totalAllocation, setTotalAllocation] = useState(100);
+  const [timeHorizon, setTimeHorizon] = useState<string>("10"); // State for time horizon
+  const [riskTolerance, setRiskTolerance] = useState<string>("moderate"); // State for risk tolerance
 
   useEffect(() => {
     const sum = assets.reduce((acc, asset) => acc + asset.percentage, 0);
@@ -60,7 +64,6 @@ const PortfolioCalculator = () => {
       );
 
       if (currentTotal > 100) {
-        // Distribute excess proportionally or cap
         const excess = currentTotal - 100;
         const otherAssets = updatedAssets.filter((asset) => asset.id !== id);
         const otherAssetsTotal = otherAssets.reduce(
@@ -78,16 +81,13 @@ const PortfolioCalculator = () => {
             }
           });
         } else {
-          // If only one asset, just cap it at 100
           return updatedAssets.map((asset) =>
             asset.id === id ? { ...asset, percentage: Math.min(100, newPercentage) } : asset
           );
         }
       } else if (currentTotal < 100 && prevAssets.length > 0) {
-        // If total is less than 100, try to distribute remaining to other assets
         // For simplicity, we'll just let it be less than 100 for now,
         // and rely on the user to adjust to 100.
-        // A more complex logic would distribute the remaining to other assets.
       }
 
       return updatedAssets;
@@ -108,7 +108,6 @@ const PortfolioCalculator = () => {
         );
 
         if (currentTotal > 100) {
-          // If total exceeds 100, proportionally reduce other assets
           const excess = currentTotal - 100;
           const otherAssets = updatedAssets.filter((asset) => asset.id !== id);
           const otherAssetsTotal = otherAssets.reduce(
@@ -126,7 +125,6 @@ const PortfolioCalculator = () => {
               }
             });
           } else {
-            // If only one asset, just cap it at 100
             return updatedAssets.map((asset) =>
               asset.id === id ? { ...asset, percentage: Math.min(100, newPercentage) } : asset
             );
@@ -149,7 +147,6 @@ const PortfolioCalculator = () => {
   const removeAsset = (id: string) => {
     setAssets((prevAssets) => {
       const updatedAssets = prevAssets.filter((asset) => asset.id !== id);
-      // If total is less than 100 after removal, distribute remaining to other assets
       const currentTotal = updatedAssets.reduce((acc, asset) => acc + asset.percentage, 0);
       if (currentTotal < 100 && updatedAssets.length > 0) {
         const remaining = 100 - currentTotal;
@@ -235,9 +232,15 @@ const PortfolioCalculator = () => {
                 {totalAllocation}%
               </Badge>
             </div>
+
+            {/* Time Horizon Selector */}
+            <TimeHorizonSelector onSelect={setTimeHorizon} defaultValue={timeHorizon} />
+
+            {/* Risk Tolerance Selector */}
+            <RiskToleranceSelector onSelect={setRiskTolerance} defaultValue={riskTolerance} />
           </div>
 
-          {/* Portfolio Visualization */}
+          {/* Portfolio Visualization and Estimated Returns */}
           <div className="flex flex-col items-center justify-center bg-gray-50 rounded-lg shadow-sm p-4">
             <h3 className="text-2xl font-bold text-indigo-800 mb-4">Portfolio Distribution</h3>
             {pieChartData.length > 0 ? (
@@ -289,6 +292,22 @@ const PortfolioCalculator = () => {
                 </div>
               ))}
             </div>
+
+            {/* Placeholder for Estimated Returns */}
+            <Card className="w-full mt-8 p-4 bg-white rounded-lg shadow-md border-none">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-2xl font-bold text-indigo-800">Estimated Returns</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center text-gray-600">
+                <p className="mb-2">
+                  Based on your allocation, time horizon ({timeHorizon} years), and risk tolerance ({riskTolerance}),
+                  estimated returns will appear here.
+                </p>
+                <p className="text-sm text-gray-500">
+                  (Calculations coming soon!)
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>
