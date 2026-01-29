@@ -42,10 +42,11 @@ const COLORS = [
 
 // --- Scenario-based Return Assumptions ---
 const ASSET_SCENARIO_RETURNS: { [key: string]: { worst: number; mostLikely: number; best: number } } = {
-  stocks: { worst: 0.04, mostLikely: 0.08, best: 0.12 }, // Example values
+  stocks: { worst: 0.04, mostLikely: 0.08, best: 0.12 },
   realEstate: { worst: 0.02, mostLikely: 0.05, best: 0.08 },
   commodities: { worst: 0.00, mostLikely: 0.04, best: 0.07 },
-  cash: { worst: 0.00, mostLikely: 0.005, best: 0.015 }, // Cash might have a small positive return
+  cash: { worst: 0.00, mostLikely: 0.00, best: 0.00 }, // Cash now always 0%
+  crypto: { worst: -0.10, mostLikely: 0.15, best: 0.30 }, // New Crypto asset
 };
 
 const ASSET_DEFAULT_NAMES: { [key: string]: string } = {
@@ -53,6 +54,7 @@ const ASSET_DEFAULT_NAMES: { [key: string]: string } = {
   realEstate: "Real Estate",
   commodities: "Commodities",
   cash: "Cash",
+  crypto: "Crypto", // New Crypto asset name
 };
 
 const RISK_TOLERANCE_MULTIPLIERS: { [key: string]: number } = {
@@ -63,22 +65,25 @@ const RISK_TOLERANCE_MULTIPLIERS: { [key: string]: number } = {
 
 const RISK_ALLOCATIONS: { [key: string]: { id: string; percentage: number }[] } = {
   conservative: [
-    { id: "stocks", percentage: 30 },
-    { id: "realEstate", percentage: 20 },
+    { id: "stocks", percentage: 25 },
+    { id: "realEstate", percentage: 15 },
     { id: "commodities", percentage: 5 },
-    { id: "cash", percentage: 45 },
+    { id: "cash", percentage: 50 },
+    { id: "crypto", percentage: 5 }, // Small crypto allocation for conservative
   ],
   moderate: [
-    { id: "stocks", percentage: 60 },
+    { id: "stocks", percentage: 50 },
     { id: "realEstate", percentage: 15 },
     { id: "commodities", percentage: 10 },
     { id: "cash", percentage: 15 },
+    { id: "crypto", percentage: 10 }, // Moderate crypto allocation
   ],
   aggressive: [
-    { id: "stocks", percentage: 85 },
+    { id: "stocks", percentage: 70 },
     { id: "realEstate", percentage: 10 },
     { id: "commodities", percentage: 5 },
     { id: "cash", percentage: 0 },
+    { id: "crypto", percentage: 15 }, // Higher crypto allocation for aggressive
   ],
 };
 // --- End Return Assumptions ---
