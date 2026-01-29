@@ -119,7 +119,8 @@ const PortfolioCalculator = () => {
 
     let weightedAnnualReturn = 0;
     assets.forEach((asset) => {
-      const baseReturn = ASSET_BASE_RETURNS[asset.id] || 0.03; // Default to 3% for unknown assets
+      // Corrected logic: explicitly check if ASSET_BASE_RETURNS[asset.id] is defined
+      const baseReturn = ASSET_BASE_RETURNS[asset.id] !== undefined ? ASSET_BASE_RETURNS[asset.id] : 0.03;
       weightedAnnualReturn += (asset.percentage / 100) * baseReturn;
     });
 
@@ -286,7 +287,7 @@ const PortfolioCalculator = () => {
                     className="text-lg font-semibold text-gray-700 border-none focus-visible:ring-0 focus-visible:ring-offset-0 p-0 h-auto bg-transparent"
                   />
                   <span className="text-lg font-medium text-gray-600 ml-2">
-                    ({((ASSET_BASE_RETURNS[asset.id] || 0.03) * 100).toFixed(0)}% est. annual return)
+                    ({((ASSET_BASE_RETURNS[asset.id] !== undefined ? ASSET_BASE_RETURNS[asset.id] : 0.03) * 100).toFixed(0)}% est. annual return)
                   </span>
                   <Button
                     variant="ghost"
