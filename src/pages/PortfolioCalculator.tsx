@@ -65,11 +65,11 @@ const RISK_TOLERANCE_MULTIPLIERS: { [key: string]: number } = {
 
 const RISK_ALLOCATIONS: { [key: string]: { id: string; percentage: number }[] } = {
   conservative: [
-    { id: "stocks", percentage: 25 },
-    { id: "realEstate", percentage: 15 },
-    { id: "commodities", percentage: 5 },
-    { id: "cash", percentage: 50 },
-    { id: "crypto", percentage: 5 }, // Small crypto allocation for conservative
+    { id: "stocks", percentage: 30 },
+    { id: "realEstate", percentage: 30 },
+    { id: "commodities", percentage: 15 },
+    { id: "cash", percentage: 25 },
+    { id: "crypto", percentage: 0 }, // Crypto set to 0% for conservative
   ],
   moderate: [
     { id: "stocks", percentage: 50 },
