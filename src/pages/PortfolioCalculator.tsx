@@ -19,11 +19,10 @@ interface Asset {
 }
 
 const initialAssets: Asset[] = [
-  { id: "stocks", name: "Stocks", percentage: 60, color: "#6366F1" }, // Indigo
-  { id: "bonds", name: "Bonds", percentage: 30, color: "#FACC15" }, // Yellow
-  { id: "realEstate", name: "Real Estate", percentage: 5, color: "#22C55E" }, // Green
-  { id: "commodities", name: "Commodities", percentage: 3, color: "#EF4444" }, // Red
-  { id: "cash", name: "Cash", percentage: 2, color: "#3B82F6" }, // Blue
+  { id: "stocks", name: "Stocks", percentage: 86, color: "#6366F1" }, // Indigo
+  { id: "realEstate", name: "Real Estate", percentage: 7, color: "#22C55E" }, // Green
+  { id: "commodities", name: "Commodities", percentage: 4, color: "#EF4444" }, // Red
+  { id: "cash", name: "Cash", percentage: 3, color: "#3B82F6" }, // Blue
 ];
 
 const COLORS = [
