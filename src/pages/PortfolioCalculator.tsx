@@ -69,13 +69,13 @@ const RISK_ALLOCATIONS: { [key: string]: { id: string; percentage: number }[] } 
     { id: "realEstate", percentage: 30 },
     { id: "commodities", percentage: 15 },
     { id: "cash", percentage: 25 },
-    { id: "crypto", percentage: 0 }, // Crypto set to 0% for conservative
+    { id: "crypto", percentage: 0 },
   ],
   moderate: [
-    { id: "stocks", percentage: 25 }, // Adjusted from 50%
-    { id: "realEstate", percentage: 40 }, // Adjusted from 15%
+    { id: "stocks", percentage: 45 }, // Adjusted for more growth than conservative
+    { id: "realEstate", percentage: 25 }, // Adjusted for less dominance than previous moderate
     { id: "commodities", percentage: 10 },
-    { id: "cash", percentage: 15 },
+    { id: "cash", percentage: 10 }, // Reduced cash for more growth
     { id: "crypto", percentage: 10 },
   ],
   aggressive: [
@@ -83,7 +83,7 @@ const RISK_ALLOCATIONS: { [key: string]: { id: string; percentage: number }[] } 
     { id: "realEstate", percentage: 10 },
     { id: "commodities", percentage: 5 },
     { id: "cash", percentage: 0 },
-    { id: "crypto", percentage: 15 }, // Higher crypto allocation for aggressive
+    { id: "crypto", percentage: 15 },
   ],
 };
 // --- End Return Assumptions ---
