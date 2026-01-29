@@ -20,13 +20,6 @@ interface Asset {
   color: string;
 }
 
-const initialAssets: Asset[] = [
-  { id: "stocks", name: "Stocks", percentage: 86, color: "#6366F1" }, // Indigo
-  { id: "realEstate", name: "Real Estate", percentage: 7, color: "#22C55E" }, // Green
-  { id: "commodities", name: "Commodities", percentage: 4, color: "#EF4444" }, // Red
-  { id: "cash", name: "Cash", percentage: 3, color: "#3B82F6" }, // Blue
-];
-
 const COLORS = [
   "#6366F1", // Indigo
   "#FACC15", // Yellow
@@ -45,8 +38,14 @@ const ASSET_BASE_RETURNS: { [key: string]: number } = {
   stocks: 0.08, // 8% annual return
   realEstate: 0.05, // 5% annual return
   commodities: 0.04, // 4% annual return
-  cash: 0.02, // 2% annual return
-  // Add more asset types here if needed
+  cash: 0.00, // 0% annual return as requested
+};
+
+const ASSET_DEFAULT_NAMES: { [key: string]: string } = {
+  stocks: "Stocks",
+  realEstate: "Real Estate",
+  commodities: "Commodities",
+  cash: "Cash",
 };
 
 const RISK_TOLERANCE_MULTIPLIERS: { [key: string]: number } = {
@@ -54,15 +53,57 @@ const RISK_TOLERANCE_MULTIPLIERS: { [key: string]: number } = {
   moderate: 1.0,
   aggressive: 1.2,
 };
+
+const RISK_ALLOCATIONS: { [key: string]: { id: string; percentage: number }[] } = {
+  conservative: [
+    { id: "stocks", percentage: 30 },
+    { id: "realEstate", percentage: 20 },
+    { id: "commodities", percentage: 5 },
+    { id: "cash", percentage: 45 },
+  ],
+  moderate: [
+    { id: "stocks", percentage: 60 },
+    { id: "realEstate", percentage: 15 },
+    { id: "commodities", percentage: 10 },
+    { id: "cash", percentage: 15 },
+  ],
+  aggressive: [
+    { id: "stocks", percentage: 85 },
+    { id: "realEstate", percentage: 10 },
+    { id: "commodities", percentage: 5 },
+    { id: "cash", percentage: 0 },
+  ],
+};
 // --- End Return Assumptions ---
 
 const PortfolioCalculator = () => {
-  const [assets, setAssets] = useState<Asset[]>(initialAssets);
-  const [totalAllocation, setTotalAllocation] = useState(100);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [totalAllocation, setTotalAllocation] = useState(0);
   const [timeHorizon, setTimeHorizon] = useState<string>("10");
   const [riskTolerance, setRiskTolerance] = useState<string>("moderate");
   const [estimatedAnnualReturn, setEstimatedAnnualReturn] = useState(0);
   const [estimatedTotalReturn, setEstimatedTotalReturn] = useState(0);
+
+  // Function to apply a risk allocation template
+  const applyRiskAllocation = useCallback((newRiskTolerance: string) => {
+    const template = RISK_ALLOCATIONS[newRiskTolerance];
+    if (!template) return;
+
+    const newAssets: Asset[] = template.map((item, index) => ({
+      id: item.id,
+      name: ASSET_DEFAULT_NAMES[item.id] || item.id.charAt(0).toUpperCase() + item.id.slice(1),
+      percentage: item.percentage,
+      color: COLORS[index % COLORS.length],
+    }));
+
+    setAssets(newAssets);
+    setRiskTolerance(newRiskTolerance);
+  }, []);
+
+  // Initialize assets based on default risk tolerance
+  useEffect(() => {
+    applyRiskAllocation("moderate");
+  }, [applyRiskAllocation]);
 
   useEffect(() => {
     const sum = assets.reduce((acc, asset) => acc + asset.percentage, 0);
@@ -78,7 +119,6 @@ const PortfolioCalculator = () => {
 
     let weightedAnnualReturn = 0;
     assets.forEach((asset) => {
-      // Use a default return if asset.id is not in ASSET_BASE_RETURNS
       const baseReturn = ASSET_BASE_RETURNS[asset.id] || 0.03; // Default to 3% for unknown assets
       weightedAnnualReturn += (asset.percentage / 100) * baseReturn;
     });
@@ -194,7 +234,7 @@ const PortfolioCalculator = () => {
   };
 
   const addAsset = () => {
-    const newId = `asset-${Date.now()}`; // Use Date.now() for a more unique ID
+    const newId = `asset-${Date.now()}`;
     const newColor = COLORS[assets.length % COLORS.length];
     setAssets((prevAssets) => [
       ...prevAssets,
@@ -209,7 +249,7 @@ const PortfolioCalculator = () => {
       if (currentTotal < 100 && updatedAssets.length > 0) {
         const remaining = 100 - currentTotal;
         const totalExistingPercentage = updatedAssets.reduce((acc, asset) => acc + asset.percentage, 0);
-        if (totalExistingPercentage > 0) { // Avoid division by zero if all other assets are 0%
+        if (totalExistingPercentage > 0) {
           return updatedAssets.map(asset => ({
             ...asset,
             percentage: asset.percentage + (asset.percentage / totalExistingPercentage) * remaining
@@ -303,7 +343,7 @@ const PortfolioCalculator = () => {
             <TimeHorizonSelector onSelect={setTimeHorizon} defaultValue={timeHorizon} />
 
             {/* Risk Tolerance Selector */}
-            <RiskToleranceSelector onSelect={setRiskTolerance} defaultValue={riskTolerance} />
+            <RiskToleranceSelector onSelect={applyRiskAllocation} defaultValue={riskTolerance} />
           </div>
 
           {/* Portfolio Visualization and Estimated Returns */}
